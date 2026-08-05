@@ -9,8 +9,10 @@ const errorHandler = (err, req, res, next) => {
 
   res.status(statusCode).json({
     success: false,
+    message: message,
     error: message,
   });
 };
 
 module.exports = errorHandler;
+

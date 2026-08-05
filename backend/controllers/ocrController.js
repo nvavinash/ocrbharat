@@ -1,7 +1,7 @@
-const path = require('path');
+const { extractTextFromImage } = require('../services/ocrService');
 
 /**
- * Controller to handle image upload and process OCR workflow.
+ * Controller for Upload & OCR API (Step 4 & Step 5)
  * POST /api/upload
  */
 const processUpload = async (req, res, next) => {
@@ -11,24 +11,29 @@ const processUpload = async (req, res, next) => {
     if (!uploadedFile) {
       return res.status(400).json({
         success: false,
-        error: 'No file uploaded',
+        message: 'Missing image. Please upload an image file.',
       });
     }
 
-    console.log(`[Upload] Image received: ${uploadedFile.filename} (${uploadedFile.size} bytes)`);
+    // Call Python PaddleOCR Service
+    const ocrResult = await extractTextFromImage(uploadedFile.path);
 
-    // Temporary placeholder response until OCR service (Step 5) and Ollama service (Step 6) are integrated
-    const mockOcrText = "नमस्ते भारत यह हिंदी हस्तलेखन परीक्षण है";
-    const mockCorrectedText = "नमस्ते भारत, यह हिंदी हस्तलेखन परीक्षण है।";
+    if (!ocrResult || ocrResult.success === false) {
+      return res.status(500).json({
+        success: false,
+        message: ocrResult?.error || 'Failed to extract Hindi text from image.',
+        ocrText: '',
+      });
+    }
+
+    const relativePath = `uploads/${uploadedFile.filename}`;
 
     return res.status(200).json({
       success: true,
-      ocrText: mockOcrText,
-      correctedText: mockCorrectedText,
-      file: {
-        filename: uploadedFile.filename,
-        path: `/uploads/${uploadedFile.filename}`,
-      },
+      message: 'Image uploaded and processed with PaddleOCR successfully.',
+      ocrText: ocrResult.ocrText || '',
+      filePath: relativePath,
+      fileName: uploadedFile.filename,
     });
   } catch (error) {
     next(error);
@@ -38,3 +43,5 @@ const processUpload = async (req, res, next) => {
 module.exports = {
   processUpload,
 };
+
+

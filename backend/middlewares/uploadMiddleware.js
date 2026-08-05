@@ -1,10 +1,17 @@
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+// Ensure uploads folder exists
+const uploadDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 // Storage configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../uploads'));
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
     // Generate unique filename with timestamp
@@ -16,14 +23,13 @@ const storage = multer.diskStorage({
 
 // File filter (accept jpg, jpeg, png, webp)
 const fileFilter = (req, file, cb) => {
-  const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-  const ext = path.extname(file.originalname).toLowerCase();
   const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+  const ext = path.extname(file.originalname).toLowerCase();
 
-  if (allowedMimeTypes.includes(file.mimetype) && allowedExtensions.includes(ext)) {
+  if (allowedExtensions.includes(ext)) {
     cb(null, true);
   } else {
-    const error = new Error('Unsupported file format. Please upload JPG, JPEG, PNG, or WEBP images.');
+    const error = new Error('Invalid file type. Only JPG, JPEG, PNG, and WEBP images are allowed.');
     error.statusCode = 400;
     cb(error, false);
   }
@@ -38,7 +44,7 @@ const upload = multer({
   fileFilter: fileFilter,
 });
 
-// Wrapper middleware to catch Multer specific errors (e.g. LIMIT_FILE_SIZE)
+// Middleware function to handle upload & error response for Step 4
 const handleUpload = (req, res, next) => {
   const singleUpload = upload.single('image');
 
@@ -48,24 +54,24 @@ const handleUpload = (req, res, next) => {
         if (err.code === 'LIMIT_FILE_SIZE') {
           return res.status(400).json({
             success: false,
-            error: 'File size too large. Maximum allowed size is 20MB.',
+            message: 'File too large. Maximum size allowed is 20 MB.',
           });
         }
         return res.status(400).json({
           success: false,
-          error: `Upload error: ${err.message}`,
+          message: `Upload error: ${err.message}`,
         });
       }
       return res.status(err.statusCode || 400).json({
         success: false,
-        error: err.message || 'File upload failed.',
+        message: err.message || 'Invalid file uploaded.',
       });
     }
 
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        error: 'No image file uploaded. Please select an image.',
+        message: 'Missing image. Please select an image file to upload.',
       });
     }
 
@@ -74,3 +80,4 @@ const handleUpload = (req, res, next) => {
 };
 
 module.exports = handleUpload;
+
