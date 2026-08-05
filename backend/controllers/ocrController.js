@@ -1,7 +1,8 @@
 const { extractTextFromImage } = require('../services/ocrService');
+const { correctTextWithOllama } = require('../services/ollamaService');
 
 /**
- * Controller for Upload & OCR API (Step 4 & Step 5)
+ * Controller for Upload, OCR & LLM Analysis Workflow
  * POST /api/upload
  */
 const processUpload = async (req, res, next) => {
@@ -15,23 +16,31 @@ const processUpload = async (req, res, next) => {
       });
     }
 
-    // Call Python PaddleOCR Service
-    const ocrResult = await extractTextFromImage(uploadedFile.path);
-
-    if (!ocrResult || ocrResult.success === false) {
-      return res.status(500).json({
-        success: false,
-        message: ocrResult?.error || 'Failed to extract Hindi text from image.',
-        ocrText: '',
-      });
+    // Step 5: Extract text via Python PaddleOCR Service
+    let ocrText = '';
+    try {
+      const ocrResult = await extractTextFromImage(uploadedFile.path);
+      if (ocrResult && ocrResult.success) {
+        ocrText = ocrResult.ocrText || '';
+      }
+    } catch (err) {
+      console.warn(`[OCR Service Warning] ${err.message}`);
     }
+
+    // Step 6: Process OCR text with Ollama Government Review Officer Prompt
+    const llmResult = await correctTextWithOllama(ocrText);
 
     const relativePath = `uploads/${uploadedFile.filename}`;
 
     return res.status(200).json({
       success: true,
-      message: 'Image uploaded and processed with PaddleOCR successfully.',
-      ocrText: ocrResult.ocrText || '',
+      ocrText: ocrText,
+      correctedText: llmResult.correctedText || ocrText,
+      summary: llmResult.summary || '',
+      category: llmResult.category || 'Other',
+      priority: llmResult.priority || 'Medium',
+      keywords: llmResult.keywords || [],
+      message: 'Image processed successfully.',
       filePath: relativePath,
       fileName: uploadedFile.filename,
     });
@@ -43,5 +52,3 @@ const processUpload = async (req, res, next) => {
 module.exports = {
   processUpload,
 };
-
-
