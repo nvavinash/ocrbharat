@@ -327,7 +327,7 @@ const correctTextWithOllama = async (ocrText) => {
 
   const prompt = `
 You are a Hindi government grievance document assistant.
-
+The OCR text may be in Hindi, English, or a mixture of Hindi and English and Number also.
 Read the OCR text below. The OCR text contains spelling errors, broken Hindi words, missing matras and incorrect characters.
 
 Your job is to understand the document and produce a concise but informative Hindi summary.
@@ -390,7 +390,7 @@ Return exactly this JSON:
 "summary": ""
 }
 
-VERY IMPORTANT:
+VERY VERY IMPORTANT:
 
 The "summary" field must NEVER be empty.
 
