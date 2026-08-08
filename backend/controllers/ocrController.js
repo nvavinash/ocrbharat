@@ -42,7 +42,17 @@ const processUpload = async (req, res, next) => {
     }
 
     // Step 6: Process OCR text with Ollama Government Review Officer Prompt
+    // const llmResult = await correctTextWithOllama(ocrText);
+    // Step 6: Process OCR text with Ollama
+    console.log("========== SENDING OCR TO OLLAMA ==========");
+    console.log(ocrText);
+    console.log("============================================");
+
     const llmResult = await correctTextWithOllama(ocrText);
+
+    console.log("========== OLLAMA RESULT ==========");
+    console.log(llmResult);
+    console.log("===================================");
 
     const relativePath = `uploads/${uploadedFile.filename}`;
 
