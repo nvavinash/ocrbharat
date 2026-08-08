@@ -72,187 +72,256 @@ const correctTextWithOllama = async (ocrText) => {
   }
 
   const ollamaUrl = process.env.OLLAMA_API_URL || 'http://localhost:11434/api/generate';
-  const modelName = process.env.OLLAMA_MODEL || 'qweb3:4b';
+  const modelName = process.env.OLLAMA_MODEL || 'qwen3:4b';
 
-  const prompt = `You are an Expert Government Document Review Officer with extensive experience handling citizen grievance applications.
+  //   const prompt = `You are an Expert Government Document Review Officer with extensive experience handling citizen grievance applications.
 
-Your responsibility is to review OCR-extracted Hindi text obtained from scanned handwritten or printed government applications.
+  // Your responsibility is to review OCR-extracted Hindi text obtained from scanned handwritten or printed government applications.
 
-This document will be reviewed by government officials. Accuracy is extremely important.
+  // This document will be reviewed by government officials. Accuracy is extremely important.
 
-========================================================
-PRIMARY OBJECTIVE
-========================================================
+  // ========================================================
+  // PRIMARY OBJECTIVE
+  // ========================================================
 
-Your task is to correct OCR mistakes while preserving the original meaning of the application.
+  // Your task is to correct OCR mistakes while preserving the original meaning of the application.
 
-Do NOT rewrite the application.
+  // Do NOT rewrite the application.
 
-Do NOT change the applicant's intent.
+  // Do NOT change the applicant's intent.
 
-Do NOT remove any information.
+  // Do NOT remove any information.
 
-Do NOT add any new information.
+  // Do NOT add any new information.
 
-Do NOT translate the text.
+  // Do NOT translate the text.
 
-Preserve all facts exactly as written.
+  // Preserve all facts exactly as written.
 
-========================================================
-OCR CORRECTION RULES
-========================================================
+  // ========================================================
+  // OCR CORRECTION RULES
+  // ========================================================
 
-Correct only OCR-related errors, including:
+  // Correct only OCR-related errors, including:
 
-• Incorrect Hindi characters
-• Missing matras (ि, ी, ु, ू, े, ै, ो, ौ)
-• Broken words
-• Merged words
-• Incorrect punctuation
-• Missing punctuation
-• Wrong spacing
-• Incorrect line breaks caused by OCR
-• Incorrect Hindi spellings caused by OCR
-• Duplicate words caused by OCR
-• Random OCR symbols
-• Extra spaces
-• Missing spaces
+  // • Incorrect Hindi characters
+  // • Missing matras (ि, ी, ु, ू, े, ै, ो, ौ)
+  // • Broken words
+  // • Merged words
+  // • Incorrect punctuation
+  // • Missing punctuation
+  // • Wrong spacing
+  // • Incorrect line breaks caused by OCR
+  // • Incorrect Hindi spellings caused by OCR
+  // • Duplicate words caused by OCR
+  // • Random OCR symbols
+  // • Extra spaces
+  // • Missing spaces
 
-If a word is unclear,
-infer it ONLY from surrounding context.
+  // If a word is unclear,
+  // infer it ONLY from surrounding context.
 
-If you are not reasonably confident,
-leave the original word unchanged.
+  // If you are not reasonably confident,
+  // leave the original word unchanged.
 
-Never guess names, addresses, mobile numbers, dates, application numbers, Aadhaar numbers, survey numbers, or official references.
+  // Never guess names, addresses, mobile numbers, dates, application numbers, Aadhaar numbers, survey numbers, or official references.
 
-========================================================
-LANGUAGE RULES
-========================================================
+  // ========================================================
+  // LANGUAGE RULES
+  // ========================================================
 
-Output must remain entirely in Hindi.
+  // Output must remain entirely in Hindi.
 
-Do not translate into English.
+  // Do not translate into English.
 
-Use formal government Hindi.
+  // Use formal government Hindi.
 
-Preserve the applicant's tone.
+  // Preserve the applicant's tone.
 
-Preserve paragraph structure.
+  // Preserve paragraph structure.
 
-Preserve numbering.
+  // Preserve numbering.
 
-Preserve lists.
+  // Preserve lists.
 
-========================================================
-SUMMARY
-========================================================
+  // ========================================================
+  // SUMMARY
+  // ========================================================
 
-After correcting the OCR text,
-generate a concise summary.
+  // After correcting the OCR text,
+  // generate a concise summary.
 
-Summary rules:
+  // Summary rules:
 
-• Hindi only
-• Maximum 5 sentences
-• Mention the grievance
-• Mention the applicant's request
-• Mention the affected department if identifiable
-• Do not invent facts
-• Do not add opinions
-• Do not recommend solutions
-• Only summarize what is actually written
+  // • Hindi only
+  // • Maximum 5 sentences
+  // • Mention the grievance
+  // • Mention the applicant's request
+  // • Mention the affected department if identifiable
+  // • Do not invent facts
+  // • Do not add opinions
+  // • Do not recommend solutions
+  // • Only summarize what is actually written
 
-========================================================
-CATEGORY DETECTION
-========================================================
+  // ========================================================
+  // CATEGORY DETECTION
+  // ========================================================
 
-Identify the most suitable grievance category.
+  // Identify the most suitable grievance category.
 
-Possible values include:
+  // Possible values include:
 
-Water Supply
-Electricity
-Road
-Drainage
-Sanitation
-Pension
-Revenue
-Land
-Police
-Education
-Health
-Agriculture
-Housing
-Transport
-Municipality
-Other
+  // Water Supply
+  // Electricity
+  // Road
+  // Drainage
+  // Sanitation
+  // Pension
+  // Revenue
+  // Land
+  // Police
+  // Education
+  // Health
+  // Agriculture
+  // Housing
+  // Transport
+  // Municipality
+  // Other
 
-========================================================
-PRIORITY
-========================================================
+  // ========================================================
+  // PRIORITY
+  // ========================================================
 
-Estimate priority.
+  // Estimate priority.
 
-Possible values:
+  // Possible values:
 
-Low
-Medium
-High
-Critical
+  // Low
+  // Medium
+  // High
+  // Critical
 
-Base the priority ONLY on the text.
+  // Base the priority ONLY on the text.
 
-Do not exaggerate.
+  // Do not exaggerate.
 
-========================================================
-KEYWORDS
-========================================================
+  // ========================================================
+  // KEYWORDS
+  // ========================================================
 
-Extract up to 10 important Hindi keywords.
+  // Extract up to 10 important Hindi keywords.
 
-========================================================
-OUTPUT FORMAT
-========================================================
+  // ========================================================
+  // OUTPUT FORMAT
+  // ========================================================
+
+  // Return ONLY valid JSON.
+
+  // Do NOT include markdown.
+
+  // Do NOT include explanations.
+
+  // Do NOT include extra text.
+
+  // Return exactly:
+
+  // {
+  //   "correctedText": "...",
+  //   "summary": "...",
+  //   "category": "...",
+  //   "priority": "...",
+  //   "keywords": [
+  //     "...",
+  //     "...",
+  //     "..."
+  //   ]
+  // }
+
+  // ========================================================
+  // OCR TEXT
+  // ========================================================
+  const prompt = `
+You are a Hindi government document analyst.
+
+Analyze the OCR text from a government application.
+
+Your main task is to create an accurate summary max 250 words.
+
+Rules:
+- Output Hindi only.
+- Do not translate.
+- Do not invent information.
+- Use only information present in the OCR text.
+- Mention the main complaint/grievance.
+- Mention the applicant's request.
+- Mention department if clearly available.
+- Keep summary within 3-5 sentences.
+
+Also provide:
+- category from the given list
+- priority based only on the document
+- important keywords
 
 Return ONLY valid JSON.
 
-Do NOT include markdown.
-
-Do NOT include explanations.
-
-Do NOT include extra text.
-
-Return exactly:
+Format:
 
 {
-  "correctedText": "...",
-  "summary": "...",
-  "category": "...",
-  "priority": "...",
-  "keywords": [
-    "...",
-    "...",
-    "..."
-  ]
+ "summary": "",
+ "category": "",
+ "priority": "",
+ "keywords": []
 }
 
-========================================================
-OCR TEXT
-========================================================
+Categories:
+Water Supply,
+Electricity,
+Road,
+Drainage,
+Sanitation,
+Pension,
+Revenue,
+Land,
+Police,
+Education,
+Health,
+Agriculture,
+Housing,
+Transport,
+Municipality,
+Other
+
+Priority:
+Low,
+Medium,
+High,
+Critical
+
+
+OCR TEXT:
+
 
 ${ocrText.trim()}`;
 
   try {
     const response = await axios.post(
       ollamaUrl,
+      // {
+      //   model: modelName,
+      //   prompt: prompt,
+      //   stream: false,
+      // },
       {
         model: modelName,
         prompt: prompt,
         stream: false,
+        options: {
+          temperature: 0.1,
+          num_predict: 300
+        }
       },
       {
-        timeout: 60000,
+        timeout: 180000,
       }
     );
 

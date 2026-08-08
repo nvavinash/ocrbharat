@@ -107,12 +107,16 @@ function Upload() {
         setProgress(percent);
       });
 
-      // Navigate to result page with OCR data
+      // Navigate to result page with full OCR data
       navigate('/result', {
         state: {
           imageUrl: preview,
-          ocrText: result.ocrText,
-          correctedText: result.correctedText,
+          ocrText: result.ocrText || '',
+          correctedText: result.correctedText || result.ocrText || '',
+          summary: result.summary || '',
+          category: result.category || 'Other',
+          priority: result.priority || 'Medium',
+          keywords: result.keywords || [],
         },
       });
     } catch (err) {
@@ -140,11 +144,10 @@ function Upload() {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 ${
-              isDragging
+            className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 ${isDragging
                 ? 'border-primary-500 bg-primary-50 scale-[1.02]'
                 : 'border-gray-200 bg-white hover:border-primary-300 hover:bg-primary-50/30'
-            }`}
+              }`}
           >
             {/* Upload Icon */}
             <div className="mb-4 inline-flex items-center justify-center w-16 h-16 bg-primary-100 rounded-2xl">

@@ -1,6 +1,7 @@
-const axios = require('axios');
+﻿const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const FormData = require('form-data');
 
 /**
  * Service to call Python FastAPI PaddleOCR microservice
@@ -16,20 +17,20 @@ const extractTextFromImage = async (filePath) => {
     throw new Error(`File not found at path: ${absolutePath}`);
   }
 
-  const fileBuffer = fs.readFileSync(absolutePath);
   const fileName = path.basename(absolutePath);
-  const blob = new Blob([fileBuffer]);
 
+  // Use form-data with a read stream — the correct Node.js way to POST multipart
   const formData = new FormData();
-  formData.append('image', blob, fileName);
+  formData.append('image', fs.createReadStream(absolutePath), fileName);
 
-  const pythonOcrUrl = process.env.PYTHON_OCR_URL || 'http://localhost:8000/ocr';
+  // const pythonOcrUrl = process.env.PYTHON_OCR_URL || '"http://127.0.0.1:8000/ocr"';
+  const pythonOcrUrl = 'http://127.0.0.1:8000/ocr';
 
   const response = await axios.post(pythonOcrUrl, formData, {
     headers: {
-      'Content-Type': 'multipart/form-data',
+      ...formData.getHeaders(), // ensures correct Content-Type + boundary
     },
-    timeout: 60000, // 60-second timeout for PaddleOCR processing
+    timeout: 60000,
   });
 
   return response.data;

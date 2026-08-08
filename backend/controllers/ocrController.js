@@ -20,6 +20,20 @@ const processUpload = async (req, res, next) => {
     let ocrText = '';
     try {
       const ocrResult = await extractTextFromImage(uploadedFile.path);
+
+      // const ocrResult = await extractTextFromImage(uploadedFile.path);
+
+      console.log("========== OCR RESULT ==========");
+      console.log(ocrResult);
+      console.log("================================");
+
+
+      if (ocrResult && ocrResult.success) {
+        ocrText = ocrResult.ocrText || '';
+      }
+
+
+      console.log("FINAL OCR TEXT:", ocrText);
       if (ocrResult && ocrResult.success) {
         ocrText = ocrResult.ocrText || '';
       }
