@@ -9,9 +9,9 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
  * @param {Function} onProgress - Callback for upload progress (0-100).
  * @returns {Promise<Object>} - The OCR result JSON.
  */
-export const uploadImage = async (file, onProgress) => {
+export const uploadPdf = async (file, onProgress) => {
   const formData = new FormData();
-  formData.append('image', file);
+  formData.append('pdf', file);
 
   const response = await axios.post(`${API_URL}/upload`, formData, {
     headers: {

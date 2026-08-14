@@ -96,6 +96,8 @@ import os
 import tempfile
 import json
 import uvicorn
+import fitz
+import pymupdf
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -150,137 +152,215 @@ def health_check():
 
 @app.post("/ocr")
 async def extract_hindi_text(
-    image: UploadFile = File(...)
+    pdf: UploadFile = File(...)
 ):
 
     temp_file_path = None
 
     try:
 
-        file_bytes = await image.read()
+        file_bytes = await pdf.read()
 
         if not file_bytes:
             raise HTTPException(
                 status_code=400,
-                detail="Uploaded image is empty"
+                detail="Uploaded PDF file is empty."
             )
 
+        # ---------------------------------------
+        # Create temporary PDF
+        # ---------------------------------------
 
-        ext = os.path.splitext(
-            image.filename
-        )[1] or ".png"
-
-
-        # Create temporary image
         with tempfile.NamedTemporaryFile(
             delete=False,
-            suffix=ext
+            suffix=".pdf"
         ) as temp_file:
 
             temp_file.write(file_bytes)
             temp_file_path = temp_file.name
 
+        print(f"Temporary PDF created: {temp_file_path}")
 
+        # ---------------------------------------
+        # Check OCR engine
+        # ---------------------------------------
 
         if ocr_engine is None:
-            raise Exception(
-                "OCR engine not loaded"
-            )
+            raise Exception("OCR engine not loaded")
 
-
-        # PaddleOCR 3.x API
-        # results = ocr_engine.predict(
-        #     temp_file_path
-        # )
-        # results = ocr_engine.ocr(
-        # temp_file_path,
-        # cls=True
-        # )
-
-        # extracted_lines = []
-
-
-        # for result in results:
-
-        #     data = result.json
-
-
-        #     if isinstance(data, str):
-        #         data = json.loads(data)
-
-
-        #     texts = (
-        #         data
-        #         .get("res", {})
-        #         .get("rec_texts", [])
-        #     )
-
-
-        #     extracted_lines.extend(texts)
-
-
-
-        # ocr_text = " ".join(
-        #     extracted_lines
-        # )
-
-
-        # return {
-        #     "success": True,
-        #     "ocrText": ocr_text
-        # }
-
-    # Run PaddleOCR
-
-        results = ocr_engine.ocr(
-            temp_file_path,
-            cls=True
-        )
-
+        # ---------------------------------------
+        # Open PDF
+        # ---------------------------------------
 
         extracted_lines = []
 
+        with pymupdf.open(temp_file_path) as doc:
 
-        if results and results[0]:
+            num_pages = len(doc)
 
-            for line in results[0]:
-
-                text = line[1][0]
-
-                extracted_lines.append(
-                      text.strip()
+            if num_pages == 0:
+                raise Exception(
+                    "Uploaded file is not a valid PDF or has 0 pages."
                 )
 
+            print(f"PDF contains {num_pages} pages")
 
-        ocr_text = " ".join(extracted_lines)
+            # ---------------------------------------
+            # Process every page
+            # ---------------------------------------
 
+            for i in range(num_pages):
+
+                print(f"Processing page {i + 1}/{num_pages}")
+
+                page = doc.load_page(i)
+
+                # Render PDF page
+                pix = page.get_pixmap(
+                    dpi=600,
+                    alpha=False
+                )
+
+                temp_page_path = None
+
+                try:
+
+                    # ---------------------------------------
+                    # Create temporary PNG
+                    # ---------------------------------------
+
+                    with tempfile.NamedTemporaryFile(
+                        delete=False,
+                        suffix=".png"
+                    ) as temp_page_img:
+
+                        temp_page_path = temp_page_img.name
+
+                    pix.save(temp_page_path)
+
+                    print(
+                        f"Running OCR on page {i + 1}"
+                    )
+
+                    # ---------------------------------------
+                    # PaddleOCR
+                    # ---------------------------------------
+
+                    results = ocr_engine.ocr(
+                        temp_page_path,
+                        cls=True
+                    )
+
+                    page_lines = []
+
+                    if results and results[0]:
+
+                        for line in results[0]:
+
+                            text = line[1][0]
+
+                            if text:
+
+                                page_lines.append(
+                                    text.strip()
+                                )
+
+                    page_text = " ".join(
+                        page_lines
+                    )
+
+                    extracted_lines.append(
+                        f"--- Page {i + 1} ---\n{page_text}"
+                    )
+
+                    print(
+                        f"Page {i + 1} OCR completed"
+                    )
+
+                finally:
+
+                    # ---------------------------------------
+                    # Delete temporary PNG
+                    # ---------------------------------------
+
+                    if (
+                        temp_page_path
+                        and os.path.exists(temp_page_path)
+                    ):
+
+                        try:
+
+                            os.remove(
+                                temp_page_path
+                            )
+
+                        except PermissionError:
+
+                            print(
+                                f"Could not delete temporary image: "
+                                f"{temp_page_path}"
+                            )
+
+        # ---------------------------------------
+        # IMPORTANT:
+        # PDF is now CLOSED
+        # ---------------------------------------
+
+        ocr_text = "\n\n".join(
+            extracted_lines
+        )
+
+        print("OCR processing completed")
 
         return {
             "success": True,
-        "ocrText": ocr_text
+            "ocrText": ocr_text,
+            "numPages": num_pages
         }
 
+    except HTTPException:
+        raise
+
     except Exception as err:
+
+        print(
+            f"OCR ERROR: {str(err)}"
+        )
 
         return {
             "success": False,
             "ocrText": "",
+            "numPages": 0,
             "error": str(err)
         }
 
-
-
     finally:
 
-        if temp_file_path and os.path.exists(
+        # ---------------------------------------
+        # Delete temporary PDF
+        # ---------------------------------------
+
+        if (
             temp_file_path
+            and os.path.exists(temp_file_path)
         ):
 
-            os.remove(
-                temp_file_path
-            )
+            try:
 
+                os.remove(
+                    temp_file_path
+                )
 
+                print(
+                    "Temporary PDF deleted"
+                )
+
+            except PermissionError:
+
+                print(
+                    f"Could not delete temporary PDF: "
+                    f"{temp_file_path}"
+                )
 
 
 if __name__ == "__main__":

@@ -1,14 +1,14 @@
-﻿const axios = require('axios');
+const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const FormData = require('form-data');
 
 /**
  * Service to call Python FastAPI PaddleOCR microservice
- * @param {string} filePath - Path to the saved image file
- * @returns {Promise<{success: boolean, ocrText: string, error?: string}>}
+ * @param {string} filePath - Path to the saved PDF file
+ * @returns {Promise<{success: boolean, ocrText: string, numPages: number, error?: string}>}
  */
-const extractTextFromImage = async (filePath) => {
+const extractTextFromPdf = async (filePath) => {
   const absolutePath = path.isAbsolute(filePath)
     ? filePath
     : path.join(__dirname, '..', filePath);
@@ -21,21 +21,20 @@ const extractTextFromImage = async (filePath) => {
 
   // Use form-data with a read stream — the correct Node.js way to POST multipart
   const formData = new FormData();
-  formData.append('image', fs.createReadStream(absolutePath), fileName);
+  formData.append('pdf', fs.createReadStream(absolutePath), fileName);
 
-  // const pythonOcrUrl = process.env.PYTHON_OCR_URL || '"http://127.0.0.1:8000/ocr"';
   const pythonOcrUrl = 'http://127.0.0.1:8000/ocr';
 
   const response = await axios.post(pythonOcrUrl, formData, {
     headers: {
       ...formData.getHeaders(), // ensures correct Content-Type + boundary
     },
-    timeout: 60000,
+    timeout: 180000, // 3 minutes timeout for PDF processing
   });
 
   return response.data;
 };
 
 module.exports = {
-  extractTextFromImage,
+  extractTextFromPdf,
 };

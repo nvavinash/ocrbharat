@@ -21,15 +21,16 @@ const storage = multer.diskStorage({
   },
 });
 
-// File filter (accept jpg, jpeg, png, webp)
+// File filter (accept pdf)
 const fileFilter = (req, file, cb) => {
-  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+  const allowedExtensions = ['.pdf'];
   const ext = path.extname(file.originalname).toLowerCase();
+  const mimetype = file.mimetype;
 
-  if (allowedExtensions.includes(ext)) {
+  if (allowedExtensions.includes(ext) && mimetype === 'application/pdf') {
     cb(null, true);
   } else {
-    const error = new Error('Invalid file type. Only JPG, JPEG, PNG, and WEBP images are allowed.');
+    const error = new Error('Invalid file type. Only PDF files are allowed.');
     error.statusCode = 400;
     cb(error, false);
   }
@@ -44,9 +45,9 @@ const upload = multer({
   fileFilter: fileFilter,
 });
 
-// Middleware function to handle upload & error response for Step 4
+// Middleware function to handle upload & error response
 const handleUpload = (req, res, next) => {
-  const singleUpload = upload.single('image');
+  const singleUpload = upload.single('pdf');
 
   singleUpload(req, res, (err) => {
     if (err) {
@@ -71,7 +72,7 @@ const handleUpload = (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: 'Missing image. Please select an image file to upload.',
+        message: 'Missing PDF. Please select a PDF file to upload.',
       });
     }
 

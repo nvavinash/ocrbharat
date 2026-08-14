@@ -25,7 +25,7 @@ function Home() {
 
         {/* Description */}
         <p className="text-lg sm:text-xl text-gray-500 mb-8 leading-relaxed max-w-lg mx-auto">
-          Upload an image and get instant, accurate text extraction powered by AI correction.
+          Upload a PDF file and get instant, accurate text extraction powered by AI correction.
         </p>
 
         {/* CTA Button */}
@@ -39,7 +39,7 @@ function Home() {
         {/* Features */}
         <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6">
           {[
-            { icon: '📷', title: 'Upload Image', desc: 'Drag & drop or browse' },
+            { icon: '📄', title: 'Upload PDF', desc: 'Drag & drop or browse' },
             { icon: '🔍', title: 'OCR Processing', desc: 'OCR extraction using LLM' },
             { icon: '✨', title: 'AI Correction', desc: 'AI correction using LLM' },
           ].map((feature, index) => (

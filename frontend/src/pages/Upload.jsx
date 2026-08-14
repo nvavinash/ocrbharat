@@ -1,18 +1,17 @@
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { uploadImage } from '../services/api';
+import { uploadPdf } from '../services/api';
 import Spinner from '../components/Spinner';
 
 // Allowed file types and max size (20MB)
-const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const ALLOWED_TYPES = ['application/pdf'];
 const MAX_SIZE = 20 * 1024 * 1024; // 20MB in bytes
 
 /**
- * Upload page - Drag & drop or browse image upload with preview.
+ * Upload page - Drag & drop or browse PDF upload.
  */
 function Upload() {
   const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -27,9 +26,11 @@ function Upload() {
   const handleFile = useCallback((selectedFile) => {
     setError('');
 
+    const isPdf = selectedFile.type === 'application/pdf' || selectedFile.name.toLowerCase().endsWith('.pdf');
+
     // Validate file type
-    if (!ALLOWED_TYPES.includes(selectedFile.type)) {
-      setError('Unsupported file type. Please upload JPG, JPEG, PNG, or WEBP.');
+    if (!isPdf) {
+      setError('Unsupported file type. Please upload a PDF file.');
       return;
     }
 
@@ -40,11 +41,6 @@ function Upload() {
     }
 
     setFile(selectedFile);
-
-    // Create preview URL
-    const reader = new FileReader();
-    reader.onloadend = () => setPreview(reader.result);
-    reader.readAsDataURL(selectedFile);
   }, []);
 
   /**
@@ -86,7 +82,6 @@ function Upload() {
    */
   const handleRemove = () => {
     setFile(null);
-    setPreview(null);
     setError('');
     setProgress(0);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -103,14 +98,16 @@ function Upload() {
     setProgress(0);
 
     try {
-      const result = await uploadImage(file, (percent) => {
+      const result = await uploadPdf(file, (percent) => {
         setProgress(percent);
       });
 
       // Navigate to result page with full OCR data
       navigate('/result', {
         state: {
-          imageUrl: preview,
+          imageUrl: null,
+          fileName: file.name,
+          numPages: result.numPages || 1,
           ocrText: result.ocrText || '',
           correctedText: result.correctedText || result.ocrText || '',
           summary: result.summary || '',
@@ -121,7 +118,7 @@ function Upload() {
       });
     } catch (err) {
       const message =
-        err.response?.data?.error || err.message || 'Upload failed. Please try again.';
+        err.response?.data?.message || err.response?.data?.error || err.message || 'Upload failed. Please try again.';
       setError(message);
     } finally {
       setIsUploading(false);
@@ -133,12 +130,12 @@ function Upload() {
       <div className="w-full max-w-xl">
         {/* Page Title */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Upload Image</h1>
-          <p className="text-gray-500">Upload a photo of Hindi handwriting to extract text</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Upload PDF</h1>
+          <p className="text-gray-500">Upload a PDF of Hindi handwriting to extract text</p>
         </div>
 
         {/* Drop Zone */}
-        {!preview ? (
+        {!file ? (
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -157,34 +154,33 @@ function Upload() {
             </div>
 
             <p className="text-gray-700 font-medium mb-1">
-              Drag & drop your image here
+              Drag & drop your PDF here
             </p>
             <p className="text-sm text-gray-400 mb-4">or click to browse</p>
             <p className="text-xs text-gray-300">
-              Supports JPG, JPEG, PNG, WEBP — Max 20MB
+              Supports PDF — Max 20MB
             </p>
 
             {/* Hidden file input */}
             <input
               ref={fileInputRef}
               type="file"
-              accept=".jpg,.jpeg,.png,.webp"
+              accept="application/pdf"
               onChange={handleInputChange}
               className="hidden"
             />
           </div>
         ) : (
-          /* Image Preview */
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            {/* Preview Image */}
-            <div className="relative group">
-              <img
-                src={preview}
-                alt="Preview"
-                className="w-full max-h-80 object-contain bg-gray-50 p-4"
-              />
-              {/* Overlay on hover */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300" />
+          /* PDF Preview Details */
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden p-6">
+            <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-xl border border-gray-100/50 mb-4">
+              <svg className="w-16 h-16 text-red-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <p className="text-gray-800 font-semibold text-center break-all">{file.name}</p>
+              <p className="text-xs text-gray-400 mt-1 uppercase font-medium tracking-wider bg-gray-200/50 px-2 py-0.5 rounded">
+                {file.type || 'application/pdf'}
+              </p>
             </div>
 
             {/* File Info */}
@@ -193,7 +189,7 @@ function Upload() {
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="flex-shrink-0 w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
                     <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
                   <div className="min-w-0">
@@ -209,7 +205,7 @@ function Upload() {
                   onClick={handleRemove}
                   disabled={isUploading}
                   className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50"
-                  title="Remove image"
+                  title="Remove PDF"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -247,7 +243,7 @@ function Upload() {
         )}
 
         {/* Upload Button */}
-        {preview && (
+        {file && (
           <button
             onClick={handleUpload}
             disabled={isUploading}
