@@ -85,6 +85,18 @@ Start FastAPI:
 ```powershell
 uvicorn main:app --reload --port 8000
 ```
+## This above will work in virtual venv environment
+
+How to select if the app not working :
+
+```text
+CTRL + SHIFT + P
+ ↓
+Python: Select Interpreter
+ ↓
+NAVIGATE TO : ocr_service\venv\Scripts\python.exe
+For your Setup it looks like C:\FOLDER\ocr_service\venv\Scripts\python.exe
+```
 
 OCR API:
 
@@ -206,6 +218,7 @@ Summary + Category + Priority + Keywords
 * Entity extraction
 * Document history and database
 * Authentication and production deployment
+
 
 ## Note
 
